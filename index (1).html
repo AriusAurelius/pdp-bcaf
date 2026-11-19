@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSI Command Center · Studi Kasus Cabang PT XYZ</title>
+<meta name="description" content="Prototipe demo untuk presentasi PDP Operation: diagnosis CSI, simulator target, dan prototipe usulan layanan.">
+<style>
+  :root{
+    --navy:#0B2E5C; --blue:#0060AF; --sky:#00A3E0; --red:#D93B30; --amber:#E59B00; --green:#1E9E6B;
+    --slate:#5E6E86; --ink:#1B2433; --ice:#EEF4FB; --bg:#F5F8FC; --line:#DCE3EC; --white:#fff;
+    --radius:16px; --shadow:0 6px 24px rgba(11,46,92,.08);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  /* ---------- hero ---------- */
+  header.hero{background:var(--navy);color:#fff;position:relative;overflow:hidden}
+  header.hero::after{content:"";position:absolute;right:-180px;top:-200px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(0,163,224,.35),rgba(0,96,175,.05) 70%);pointer-events:none}
+  .hero-inner{display:grid;grid-template-columns:1.4fr 1fr;gap:32px;align-items:center;padding:48px 0 40px;position:relative;z-index:1}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sky)}
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--sky);box-shadow:0 0 0 4px rgba(0,163,224,.25);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(0,163,224,.25)}50%{box-shadow:0 0 0 8px rgba(0,163,224,.05)}}
+  h1{font-size:clamp(30px,4vw,46px);line-height:1.1;margin:14px 0 12px;letter-spacing:-.01em}
+  .hero p.lead{color:#CFE0F3;font-size:18px;margin:0 0 22px;max-width:620px}
+  .presenter{font-size:14px;color:#CFE0F3}
+  .presenter b{color:#fff}
+  .proto-tag{display:inline-block;margin-top:14px;font-size:12px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.1);color:#CFE0F3;border:1px solid rgba(255,255,255,.18)}
+  .gauge-card{justify-self:end;text-align:center}
+  .gauge{position:relative;width:230px;height:230px}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .gauge .num{font-size:46px;font-weight:800;line-height:1}
+  .gauge .lbl{font-size:13px;color:#CFE0F3;margin-top:6px}
+  .gauge .sub{font-size:12px;color:var(--sky)}
+
+  /* ---------- tabs ---------- */
+  nav.tabs{position:sticky;top:0;z-index:20;background:rgba(245,248,252,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .tabs .wrap{display:flex;gap:8px;padding-top:12px;padding-bottom:12px;overflow-x:auto}
+  .tab{border:0;background:transparent;padding:10px 16px;border-radius:999px;font-weight:600;color:var(--slate);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:8px}
+  .tab .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ice);color:var(--blue);font-size:12px;font-weight:800}
+  .tab[aria-selected="true"]{background:var(--navy);color:#fff}
+  .tab[aria-selected="true"] .n{background:var(--sky);color:var(--navy)}
+  .tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .kbd-hint{margin-left:auto;align-self:center;font-size:12px;color:var(--slate);white-space:nowrap}
+
+  /* ---------- sections ---------- */
+  main{padding:32px 0 56px}
+  .panel{display:none}
+  .panel.active{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .sec-head{margin:0 0 20px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+  h2{font-size:clamp(24px,3vw,32px);margin:6px 0 6px;color:var(--navy);line-height:1.2}
+  .sec-head p{margin:0;color:var(--slate);max-width:760px}
+  h3{font-size:18px;margin:0 0 4px;color:var(--navy)}
+  .muted{color:var(--slate)}
+  .small{font-size:13px}
+  .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
+  .grid{display:grid;gap:20px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .mt{margin-top:20px}
+
+  /* KPI */
+  .kpi{display:flex;gap:14px;align-items:center}
+  .kpi .ic{flex:0 0 44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff}
+  .kpi .ic svg{width:22px;height:22px}
+  .kpi .v{font-size:30px;font-weight:800;color:var(--navy);line-height:1}
+  .kpi .l{font-size:13px;color:var(--slate);margin-top:4px}
+  .kpi.dark{background:var(--navy)}
+  .kpi.dark .v{color:#fff}.kpi.dark .l{color:#CFE0F3}.kpi.dark .ic{background:var(--sky)}
+
+  /* bars */
+  .bars{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 48px;gap:12px;align-items:center;font-size:14px}
+  .bar-track{height:22px;border-radius:6px;background:var(--ice);position:relative;overflow:hidden}
+  .bar-fill{height:100%;width:0;border-radius:6px;background:var(--blue);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .bar-fill.bad{background:var(--red)}
+  .bar-neutral{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--navy);opacity:.55}
+  .bar-val{font-weight:800;text-align:right}
+  .bar-val.bad{color:var(--red)}
+  .stack{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--ice)}
+  .stack span{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1);overflow:hidden;white-space:nowrap}
+  .s-low{background:var(--red)}.s-neu{background:#8592A6}.s-high{background:var(--blue)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--slate);margin-top:10px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+  /* insights */
+  .insight .big{font-size:42px;font-weight:800;line-height:1;color:var(--red)}
+  .insight.dark{background:var(--navy);color:#fff}
+  .insight.dark .big{color:var(--sky)}
+  .insight p{margin:10px 0 0;font-size:14px}
+  .insight.dark p{color:#CFE0F3}
+
+  /* heatmap */
+  .heat-wrap{overflow-x:auto;margin-top:14px;padding-bottom:4px}
+  .heat{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;min-width:760px;align-items:center}
+  .heat .name{font-size:13px;color:var(--ink);white-space:nowrap}
+  .heat .row{display:grid;grid-template-columns:repeat(150,1fr);gap:1px;height:26px}
+  .heat .cell{border-radius:1px}
+  .c1{background:#B52A21}.c2{background:#E8746C}.c3{background:#BAC4D3}.c4{background:#5B9BD5}.c5{background:#0060AF}
+  .heat-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .tip{position:fixed;pointer-events:none;background:var(--navy);color:#fff;font-size:12px;padding:6px 10px;border-radius:8px;z-index:50;opacity:0;transition:opacity .1s;white-space:nowrap}
+
+  .btn{border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:transform .1s,background .2s}
+  .btn:hover{background:#004F91}.btn:active{transform:scale(.98)}
+  .btn.ghost{background:var(--ice);color:var(--blue)}
+  .btn.ghost:hover{background:#DCEAF8}
+  .btn.ghost[aria-pressed="true"]{background:var(--navy);color:#fff}
+  .btn.sm{padding:7px 12px;font-size:13px;border-radius:8px}
+
+  /* tiers */
+  .tier h3{display:flex;align-items:center;gap:10px}
+  .tier .dot{width:12px;height:12px;border-radius:50%}
+  .aspect{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:10px 14px;margin-top:10px}
+  .aspect b{display:block;font-size:14px}
+  .aspect small{color:var(--slate)}
+  .aspect .sc{font-size:22px;font-weight:800}
+  .tier .act{margin:14px 0 0;font-size:14px}
+
+  /* simulator */
+  .sim{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;align-items:start}
+  .slider{padding:14px 0;border-bottom:1px solid var(--line)}
+  .slider:last-child{border-bottom:0}
+  .slider-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .slider-top b{font-size:15px}
+  .slider-top .now{font-weight:800;font-size:18px}
+  .slider .base{font-size:12px;color:var(--slate)}
+  input[type=range]{width:100%;accent-color:var(--blue);margin-top:8px;height:24px}
+  .crit input[type=range]{accent-color:var(--red)}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  details summary{cursor:pointer;font-weight:700;color:var(--blue);padding:12px 0 4px}
+  .sim-out{position:sticky;top:76px}
+  .gauge.light .num{color:var(--navy)}
+  .gauge.light .lbl{color:var(--slate)}
+  .delta{display:inline-block;margin-top:6px;font-weight:800;padding:4px 10px;border-radius:999px;font-size:14px}
+  .delta.up{background:#E3F4EC;color:var(--green)}.delta.flat{background:var(--ice);color:var(--slate)}.delta.down{background:#FBE7E5;color:var(--red)}
+  .lost .bar-row{grid-template-columns:150px 1fr 44px}
+  .note{font-size:12px;color:var(--slate);margin-top:10px}
+  .road{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .phase{border-radius:14px;padding:18px;background:#fff;box-shadow:var(--shadow)}
+  .phase .ph{display:inline-block;font-size:12px;font-weight:800;color:#fff;border-radius:999px;padding:4px 10px;margin-bottom:8px}
+  .phase ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+  .phase li{margin:4px 0}
+
+  /* prototypes */
+  .proto{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  label.f{display:block;font-size:13px;font-weight:700;color:var(--navy);margin:12px 0 6px}
+  textarea,select,input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+  textarea{min-height:84px;resize:vertical}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--blue)}
+  .chip:hover{background:var(--ice)}
+  .ticket{margin-top:18px;border:1px solid var(--line);border-radius:14px;padding:16px;display:none}
+  .ticket.show{display:block;animation:fade .35s ease}
+  .ticket-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .tid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:800;color:var(--navy);font-size:16px}
+  .tag{display:inline-block;font-size:12px;font-weight:800;color:#fff;padding:3px 10px;border-radius:999px}
+  .t-ringan{background:var(--green)}.t-sedang{background:var(--amber)}.t-berat{background:var(--red)}
+  .steps{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;counter-reset:s}
+  .steps li{font-size:12px;text-align:center;color:var(--slate);position:relative;padding-top:34px}
+  .steps li::before{counter-increment:s;content:counter(s);position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--ice);color:var(--slate);font-weight:800;font-size:12px}
+  .steps li.done{color:var(--navy);font-weight:700}
+  .steps li.done::before{background:var(--blue);color:#fff;content:"✓"}
+  .steps li.cur::before{background:var(--sky);color:var(--navy)}
+  .phone{margin-top:16px;background:var(--navy);border-radius:18px;padding:14px;color:#fff}
+  .phone .ph-h{font-size:12px;color:#CFE0F3;display:flex;justify-content:space-between}
+  .notif{background:rgba(255,255,255,.1);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:13px;animation:fade .35s ease}
+  .notif b{color:var(--sky)}
+  .rng-row{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:center}
+  .rng-row output{font-weight:800;text-align:right;color:var(--navy);font-size:14px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .result{margin-top:18px;border-radius:14px;padding:18px;background:var(--bg)}
+  .lane{display:flex;align-items:center;gap:14px}
+  .score{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;flex:0 0 84px;transition:background .3s}
+  .lane h4{margin:0;font-size:18px;color:var(--navy)}
+  .lane p{margin:2px 0 0;font-size:13px;color:var(--slate)}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .metric{background:#fff;border-radius:10px;padding:10px}
+  .metric .mv{font-weight:800;color:var(--navy)}
+  .metric .ml{font-size:12px;color:var(--slate)}
+  .factors{list-style:none;padding:0;margin:14px 0 0;font-size:13px}
+  .factors li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .factors .pt{font-weight:800;white-space:nowrap}
+  .pt.neg{color:var(--red)}.pt.pos{color:var(--green)}
+  .summary-box{margin-top:14px;background:#fff;border-left:0;border-radius:10px;padding:12px 14px;font-size:13px}
+  .human{display:flex;gap:10px;align-items:center;margin-top:14px;background:#E3F4EC;color:#14583D;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
+  .disclaimer{margin-top:12px;font-size:12px;color:var(--slate)}
+
+  footer{background:var(--navy);color:#CFE0F3;font-size:13px;padding:28px 0}
+  footer b{color:#fff}
+
+  @media (max-width:960px){
+    .hero-inner,.sim,.proto{grid-template-columns:1fr}
+    .gauge-card{justify-self:start}
+    .g4{grid-template-columns:repeat(2,1fr)}
+    .g3,.g2,.road{grid-template-columns:1fr}
+    .sim-out{position:static}
+    .kbd-hint{display:none}
+  }
+  @media (max-width:520px){
+    .wrap{padding:0 16px}
+    .g4{grid-template-columns:1fr}
+    .bar-row{grid-template-columns:110px 1fr 40px;font-size:13px}
+    .metrics,.two{grid-template-columns:1fr}
+    .steps li{font-size:11px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <span class="badge"><span class="dot"></span>Live demo · PDP Operation</span>
+      <h1>CSI Command Center<br>Cabang PT XYZ</h1>
+      <p class="lead">Diagnosis penurunan kepuasan nasabah, simulasi target perbaikan, dan prototipe usulan layanan — semuanya dihitung langsung dari data 150 nasabah.</p>
+      <div class="presenter">Disusun oleh <b>Arius Aurelius</b> · Peran dalam kasus: Branch Operation Head</div>
+      <span class="proto-tag">Prototipe presentasi · bukan situs resmi</span>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge" id="heroGauge" role="img" aria-label="CSI cabang saat ini">
+        <svg width="230" height="230" viewBox="0 0 230 230">
+          <circle cx="115" cy="115" r="96" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="18"/>
+          <circle id="heroArc" cx="115" cy="115" r="96" fill="none" stroke="#00A3E0" stroke-width="18" stroke-linecap="round" stroke-dasharray="0 999" style="transition:stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)"/>
+        </svg>
+        <div class="val"><div class="num" id="heroNum">0</div><div class="lbl">CSI cabang saat ini</div><div class="sub" id="heroSub"></div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Bagian demo">
+  <div class="wrap" role="tablist">
+    <button class="tab" role="tab" id="t-diagnosis" aria-controls="diagnosis" aria-selected="true"><span class="n">1</span>Diagnosis</button>
+    <button class="tab" role="tab" id="t-simulator" aria-controls="simulator" aria-selected="false"><span class="n">2</span>Simulator target</button>
+    <button class="tab" role="tab" id="t-prototipe" aria-controls="prototipe" aria-selected="false"><span class="n">3</span>Prototipe usulan</button>
+    <span class="kbd-hint">Tekan 1 · 2 · 3 untuk pindah bagian</span>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ================= DIAGNOSIS ================= -->
+  <section class="panel active" id="diagnosis" role="tabpanel" aria-labelledby="t-diagnosis">
+    <div class="sec-head">
+      <div class="kicker">01 · Diagnosis</div>
+      <h2>Apa yang menyebabkan CSI cabang turun?</h2>
+      <p>Semua angka di bawah dihitung langsung di browser dari 900 penilaian (150 nasabah × 6 aspek, skala 1–5).</p>
+    </div>
+
+    <div class="grid g4" id="kpis"></div>
+
+    <div class="grid g2 mt">
+      <div class="card">
+        <h3>Rata-rata skor per aspek</h3>
+        <div class="muted small">Garis tipis = titik netral 3,0</div>
+        <div class="bars" id="avgBars"></div>
+      </div>
+      <div class="card">
+        <h3>Sebaran kepuasan per aspek</h3>
+        <div class="muted small">Persentase nasabah per kategori</div>
+        <div class="bars" id="stackBars"></div>
+        <div class="legend"><span><i class="s-low"></i>Tidak puas (1–2)</span><span><i class="s-neu"></i>Netral (3)</span><span><i class="s-high"></i>Puas (4–5)</span></div>
+      </div>
+    </div>
+
+    <div class="grid g3 mt" id="insights"></div>
+
+    <div class="card mt">
+      <div class="heat-tools">
+        <div>
+          <h3>900 penilaian dalam satu layar</h3>
+          <div class="muted small">Setiap kotak = satu nasabah. Arahkan kursor untuk melihat detail.</div>
+        </div>
+        <button class="btn ghost sm" id="sortBtn" aria-pressed="false">Urutkan nasabah berdasarkan skor rata-rata</button>
+      </div>
+      <div class="heat-wrap"><div class="heat" id="heat"></div></div>
+      <div class="legend"><span><i class="c1"></i>1</span><span><i class="c2"></i>2</span><span><i class="c3"></i>3</span><span><i class="c4"></i>4</span><span><i class="c5"></i>5</span><span>· Dua baris merah = dua aspek bermasalah</span></div>
+    </div>
+
+    <div class="grid g3 mt" id="tiers"></div>
+  </section>
+
+  <!-- ================= SIMULATOR ================= -->
+  <section class="panel" id="simulator" role="tabpanel" aria-labelledby="t-simulator">
+    <div class="sec-head">
+      <div class="kicker">02 · Simulator target</div>
+      <h2>Berapa CSI jika dua aspek kritis membaik?</h2>
+      <p>Geser skor rata-rata tiap aspek dan lihat CSI berubah secara langsung. CSI = rata-rata semua aspek ÷ 5 × 100% (bobot setara).</p>
+    </div>
+    <div class="sim">
+      <div class="card">
+        <div class="presets" role="group" aria-label="Skenario">
+          <button class="btn ghost sm" data-preset="now" aria-pressed="true">Saat ini</button>
+          <button class="btn ghost sm" data-preset="t90" aria-pressed="false">Target 90 hari (3,0)</button>
+          <button class="btn ghost sm" data-preset="t6" aria-pressed="false">Target 6 bulan (3,5)</button>
+        </div>
+        <div id="critSliders"></div>
+        <details>
+          <summary>Aspek lain (4 aspek)</summary>
+          <div id="otherSliders"></div>
+        </details>
+      </div>
+      <div class="sim-out">
+        <div class="card" style="text-align:center">
+          <div class="gauge light" style="margin:0 auto">
+            <svg width="230" height="230" viewBox="0 0 230 230" aria-hidden="true">
+              <circle cx="115" cy="115" r="96" fill="none" stroke="#EEF4FB" stroke-width="18"/>
+              <circle id="simArc" cx="115" cy="115" r="96" fill="none" stroke="#0060AF" stroke-width="18" stroke-linecap="round" stroke-dasharray="0 999" style="transition:stroke-dasharray .35s ease"/>
+            </svg>
+            <div class="val"><div class="num" id="simNum" aria-live="polite">0</div><div class="lbl">CSI simulasi</div></div>
+          </div>
+          <span class="delta flat" id="simDelta">±0,0 poin</span>
+        </div>
+        <div class="card mt lost">
+          <h3>Poin CSI yang hilang per aspek</h3>
+          <div class="muted small">Jarak dari skor sempurna 5,0, dikonversi ke poin CSI</div>
+          <div class="bars" id="lostBars"></div>
+          <div class="note" id="lostNote"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top:36px">
+      <div class="kicker">Roadmap</div>
+      <h2>Rencana 90 hari</h2>
+    </div>
+    <div class="road">
+      <div class="phase"><span class="ph" style="background:var(--sky)">Hari 1–30 · Stabilkan</span><ul><li>Ukur baseline waktu tunggu & waktu selesai keluhan</li><li>Petakan jam sibuk, atur ulang shift CS</li><li>Log keluhan bernomor tiket & PIC</li><li>Mulai daily huddle</li></ul></div>
+      <div class="phase"><span class="ph" style="background:var(--blue)">Hari 31–60 · Perbaiki</span><ul><li>Sistem antrean & jalur cepat berjalan</li><li>Pelatihan CS + wewenang keluhan ringan</li><li>SLA per kategori diberlakukan</li><li>Survei pascalayanan aktif</li></ul></div>
+      <div class="phase"><span class="ph" style="background:var(--navy)">Hari 61–90 · Kunci & evaluasi</span><ul><li>Review dashboard mingguan</li><li>Analisis keluhan berulang</li><li>Evaluasi target 90 hari</li><li>Bakukan SOP & bagikan ke cabang lain</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ================= PROTOTIPE ================= -->
+  <section class="panel" id="prototipe" role="tabpanel" aria-labelledby="t-prototipe">
+    <div class="sec-head">
+      <div class="kicker">03 · Prototipe usulan</div>
+      <h2>Seperti apa usulannya jika dijalankan?</h2>
+      <p>Dua prototipe konsep untuk dicoba langsung. Semua input diproses di browser ini saja dan tidak dikirim ke mana pun.</p>
+    </div>
+    <div class="proto">
+      <!-- complaint tracker -->
+      <div class="card">
+        <div class="kicker">Prototipe A</div>
+        <h3>Pelacak keluhan bernomor tiket</h3>
+        <p class="muted small" style="margin:4px 0 0">Keluhan dicatat, diklasifikasi, diberi SLA, dan nasabah dikabari di setiap tahap.</p>
+        <label class="f" for="cText">Keluhan nasabah</label>
+        <textarea id="cText" placeholder="Contoh: Saya sudah antre CS lebih dari 1 jam dan belum dilayani."></textarea>
+        <div class="chips" aria-label="Contoh keluhan">
+          <button class="chip" data-ex="Saya sudah antre CS lebih dari 1 jam dan belum dilayani.">Antre CS lama</button>
+          <button class="chip" data-ex="BPKB saya belum bisa diambil padahal kredit sudah lunas sebulan lalu.">BPKB belum bisa diambil</button>
+          <button class="chip" data-ex="Angsuran bulan ini terpotong dua kali dari rekening saya.">Angsuran terpotong dua kali</button>
+        </div>
+        <div class="two">
+          <div><label class="f" for="cChannel">Kanal</label>
+            <select id="cChannel"><option>Kantor cabang</option><option>Aplikasi</option><option>Call center</option></select></div>
+          <div><label class="f" for="cLevel">Tingkat</label>
+            <select id="cLevel"><option value="auto">Otomatis</option><option value="Ringan">Ringan</option><option value="Sedang">Sedang</option><option value="Berat">Berat</option></select></div>
+        </div>
+        <div style="margin-top:14px"><button class="btn" id="cSubmit">Catat keluhan & buat tiket</button></div>
+
+        <div class="ticket" id="ticket" aria-live="polite">
+          <div class="ticket-head">
+            <div><div class="muted small">Nomor tiket</div><div class="tid" id="tId"></div></div>
+            <div style="text-align:right"><span class="tag" id="tLevel"></span><div class="muted small" id="tTopic" style="margin-top:4px"></div></div>
+          </div>
+          <div class="small" style="margin-top:10px"><b>SLA:</b> <span id="tSla"></span></div>
+          <ol class="steps" id="tSteps"><li>Diterima</li><li>Diklasifikasi</li><li>Ditangani PIC</li><li>Selesai & konfirmasi</li></ol>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn sm" id="tNext">Simulasikan langkah berikutnya</button>
+            <button class="btn ghost sm" id="tReset">Tiket baru</button>
+          </div>
+          <div class="phone">
+            <div class="ph-h"><span>Notifikasi ke nasabah</span><span id="phTime"></span></div>
+            <div id="notifs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- credit pre-analysis -->
+      <div class="card">
+        <div class="kicker">Prototipe B</div>
+        <h3>Pra-analisis kredit berbantuan AI (simulasi)</h3>
+        <p class="muted small" style="margin:4px 0 0">Sistem menyiapkan skor awal, faktor penjelas, dan ringkasan. Analis kredit tetap memutuskan.</p>
+
+        <label class="f" for="inInc">Penghasilan bersih per bulan</label>
+        <div class="rng-row"><input type="range" id="inInc" min="3000000" max="100000000" step="500000" value="15000000"><output for="inInc" id="oInc"></output></div>
+        <label class="f" for="inDebt">Cicilan lain per bulan</label>
+        <div class="rng-row"><input type="range" id="inDebt" min="0" max="30000000" step="250000" value="1500000"><output for="inDebt" id="oDebt"></output></div>
+        <label class="f" for="inOtr">Harga kendaraan (OTR)</label>
+        <div class="rng-row"><input type="range" id="inOtr" min="100000000" max="1500000000" step="5000000" value="250000000"><output for="inOtr" id="oOtr"></output></div>
+        <div class="two">
+          <div><label class="f" for="inDp">Uang muka</label>
+            <div class="rng-row"><input type="range" id="inDp" min="10" max="60" step="5" value="25"><output for="inDp" id="oDp"></output></div></div>
+          <div><label class="f" for="inRate">Bunga flat per tahun (asumsi)</label>
+            <div class="rng-row"><input type="range" id="inRate" min="2" max="10" step="0.25" value="4.5"><output for="inRate" id="oRate"></output></div></div>
+        </div>
+        <div class="two">
+          <div><label class="f" for="inTenor">Tenor</label>
+            <select id="inTenor"><option value="12">12 bulan</option><option value="24">24 bulan</option><option value="36">36 bulan</option><option value="48" selected>48 bulan</option><option value="60">60 bulan</option></select></div>
+          <div><label class="f" for="inCond">Kondisi kendaraan</label>
+            <select id="inCond"><option value="baru">Baru</option><option value="bekas">Bekas</option></select></div>
+        </div>
+        <label class="f" for="inHist">Riwayat kredit</label>
+        <select id="inHist"><option value="lancar">Lancar</option><option value="none">Belum ada riwayat</option><option value="late">Pernah terlambat ringan</option><option value="bad">Pernah macet</option></select>
+
+        <div class="result" aria-live="polite">
+          <div class="lane">
+            <div class="score" id="rScore">0</div>
+            <div><h4 id="rLane"></h4><p id="rLaneDesc"></p></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><div class="mv" id="mInst"></div><div class="ml">Estimasi angsuran</div></div>
+            <div class="metric"><div class="mv" id="mDsr"></div><div class="ml">Rasio cicilan / penghasilan</div></div>
+            <div class="metric"><div class="mv" id="mLoan"></div><div class="ml">Pokok pembiayaan</div></div>
+          </div>
+          <div class="small" style="margin-top:14px;font-weight:700;color:var(--navy)">Faktor yang memengaruhi skor</div>
+          <ul class="factors" id="rFactors"></ul>
+          <div class="summary-box"><b>Ringkasan untuk analis:</b> <span id="rSummary"></span></div>
+          <div class="human">✓ Keputusan akhir tetap di tangan analis kredit</div>
+          <div class="disclaimer">Ilustrasi konsep. Skor dihitung dengan aturan sederhana untuk demo, bukan model AI sungguhan dan bukan kebijakan kredit perusahaan mana pun.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <b>CSI Command Center</b> · Prototipe untuk presentasi PDP Operation (Tes Tertulis Tipe 1). Data survei berasal dari soal kasus PT XYZ (fiktif). Halaman ini bukan situs atau layanan resmi BCA Finance.
+  </div>
+</footer>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+/* ---------- data: 150 nasabah × 6 aspek (dari file soal) ---------- */
+const DATA = [[4,5,2,3,4,5],[4,4,3,3,4,4],[5,4,2,2,5,4],[5,5,3,1,3,4],[4,3,2,2,4,3],[4,4,3,1,5,4],[5,5,3,2,3,4],[5,4,1,2,3,4],[4,4,3,2,5,4],[4,3,3,2,3,5],[4,4,3,1,3,4],[5,4,2,2,4,4],[4,4,3,1,3,3],[4,5,2,1,4,5],[4,3,2,2,4,5],[4,3,2,2,4,4],[5,3,1,3,3,3],[5,4,1,1,3,4],[5,5,2,2,3,3],[4,4,2,3,4,3],[4,4,2,2,4,4],[5,5,1,2,3,4],[4,3,3,1,5,5],[4,5,1,1,3,4],[5,4,1,1,5,5],[4,4,1,1,4,5],[4,4,2,3,4,3],[4,5,3,2,4,4],[5,4,3,2,3,4],[4,3,2,2,3,4],[5,3,3,2,4,4],[5,4,1,3,4,4],[5,5,2,2,3,3],[5,5,2,3,4,3],[4,5,2,2,5,4],[5,4,1,1,4,4],[5,4,2,3,5,3],[5,3,3,1,4,4],[5,4,2,1,4,5],[4,4,2,3,4,4],[4,4,2,3,4,5],[5,3,2,3,5,4],[4,4,3,1,4,3],[5,4,2,1,4,4],[4,3,2,2,3,5],[4,4,2,2,4,4],[4,4,3,2,4,5],[5,3,1,2,3,3],[5,4,2,2,4,3],[4,4,2,2,4,3],[4,3,1,2,5,4],[4,4,2,2,4,4],[5,5,3,2,4,5],[5,4,2,2,3,4],[4,3,2,2,4,4],[5,4,1,2,3,3],[5,4,1,2,4,3],[5,5,2,2,4,3],[4,3,3,2,3,4],[4,4,3,2,4,3],[5,5,2,1,4,3],[4,3,2,2,5,4],[5,5,3,1,4,4],[5,4,2,2,3,4],[5,5,1,3,3,4],[4,5,2,2,3,5],[5,4,2,3,4,4],[5,4,1,3,3,5],[5,5,2,2,3,4],[4,3,3,1,5,4],[4,5,1,1,4,3],[4,5,3,3,5,5],[4,3,3,3,4,3],[4,4,3,2,4,4],[4,3,2,2,3,4],[5,4,2,3,5,5],[4,5,2,2,4,3],[5,4,2,3,5,5],[5,3,2,1,3,4],[5,4,2,2,4,4],[5,5,1,2,3,5],[4,4,2,3,5,4],[5,4,1,2,5,4],[4,3,2,2,4,5],[5,5,2,2,4,4],[4,4,2,3,3,4],[5,5,1,2,5,3],[5,4,2,1,3,5],[4,5,3,2,5,4],[4,4,2,1,5,4],[5,4,1,1,5,5],[5,4,2,2,3,4],[5,5,2,2,5,3],[5,5,2,2,4,4],[4,4,2,2,3,4],[5,5,2,3,5,4],[5,3,1,1,4,4],[4,5,2,1,4,4],[5,5,2,1,4,3],[5,4,2,1,3,4],[5,4,1,2,4,5],[4,5,3,1,4,3],[5,4,3,2,4,4],[4,4,2,2,5,4],[5,4,2,3,5,4],[4,3,2,3,3,4],[4,3,2,2,4,5],[4,5,3,2,4,4],[4,3,1,1,5,4],[5,5,3,2,4,3],[5,3,1,1,4,5],[4,3,2,1,5,5],[5,4,2,2,4,4],[4,4,2,2,4,4],[4,4,1,1,5,5],[5,3,1,1,4,4],[5,3,1,3,4,4],[5,3,3,2,4,5],[5,3,3,2,4,3],[4,4,1,2,4,4],[5,4,1,1,3,4],[5,3,3,1,4,5],[5,5,1,2,4,3],[4,4,2,2,5,5],[5,3,3,1,3,4],[5,5,2,3,3,3],[5,4,1,1,4,4],[5,4,2,2,3,4],[4,4,2,2,4,5],[5,3,3,2,4,3],[5,4,1,1,4,3],[5,4,2,2,5,4],[5,3,2,2,4,4],[5,4,2,2,5,3],[5,4,2,2,3,4],[5,4,1,1,4,3],[4,4,3,3,3,4],[4,4,1,3,4,3],[4,3,2,2,4,4],[4,4,3,2,4,4],[5,4,3,2,4,4],[4,4,3,2,5,4],[5,5,2,3,5,3],[4,3,1,2,5,3],[5,5,1,1,4,4],[4,4,2,3,4,4],[5,3,2,1,4,4],[4,4,1,2,4,4],[5,5,2,1,4,4],[4,4,2,3,4,4]];
+const ASPECTS = ["Kenyamanan kantor","Pengajuan proses","Kecepatan CS","Penanganan keluhan","Pengambilan BPKB","Pelayanan kasir"];
+const CRIT = [2,3];
+const N = DATA.length;
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const fmt = (x, d = 2) => x.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (x, d = 1) => fmt(x * 100, d) + "%";
+const rp = (x) => "Rp " + Math.round(x).toLocaleString("id-ID");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ICON = {
+  users:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.7 0-8 1.3-8 4v3h8v-3c0-1.1.4-2.1 1.2-3A11 11 0 0 0 8 13Zm8 0c-3 0-8 1.5-8 4.5V20h16v-2.5c0-3-5-4.5-8-4.5Z"/></svg>',
+  grid:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 2h6v3H9zM6 4h2v3h8V4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 7v2h8v-2Zm0 4v2h8v-2Z"/></svg>',
+  pie:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 2.05A10 10 0 1 0 21.95 13H11Z"/><path d="M13 2.05V11h8.95A10 10 0 0 0 13 2.05Z"/></svg>',
+};
+
+/* ---------- stats ---------- */
+const stats = ASPECTS.map((name, i) => {
+  const col = DATA.map((r) => r[i]);
+  const sum = col.reduce((a, b) => a + b, 0);
+  const low = col.filter((v) => v <= 2).length, neu = col.filter((v) => v === 3).length, high = col.filter((v) => v >= 4).length;
+  return { name, i, avg: sum / N, low: low / N, neu: neu / N, high: high / N, lowN: low, highN: high };
+});
+const overall = stats.reduce((a, s) => a + s.avg, 0) / ASPECTS.length;
+const CSI = overall / 5 * 100;
+const satisfiedCrit = DATA.filter((r) => r[2] >= 4 || r[3] >= 4).length;
+const eitherLow = DATA.filter((r) => r[2] <= 2 || r[3] <= 2).length;
+const bothLow = DATA.filter((r) => r[2] <= 2 && r[3] <= 2).length;
+
+/* ---------- count-up ---------- */
+function countUp(el, to, d, suffix = "", ms = 1200) {
+  if (reduce) { el.textContent = fmt(to, d) + suffix; return; }
+  const t0 = performance.now();
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(to * e, d) + suffix;
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const CIRC = 2 * Math.PI * 96;
+function setArc(el, value) { el.setAttribute("stroke-dasharray", (CIRC * value / 100).toFixed(1) + " " + CIRC.toFixed(1)); }
+
+/* ---------- hero ---------- */
+countUp($("#heroNum"), CSI, 1, "%");
+$("#heroSub").textContent = "rata-rata " + fmt(overall, 2) + " dari 5";
+requestAnimationFrame(() => setTimeout(() => setArc($("#heroArc"), CSI), 60));
+
+/* ---------- KPI ---------- */
+const kpis = [
+  { ic: ICON.users, v: N, d: 0, s: "", l: "Responden nasabah" },
+  { ic: ICON.grid, v: ASPECTS.length, d: 0, s: "", l: "Aspek layanan dinilai" },
+  { ic: ICON.list, v: N * ASPECTS.length, d: 0, s: "", l: "Total penilaian" },
+  { ic: ICON.pie, v: CSI, d: 1, s: "%", l: "CSI cabang (" + fmt(overall, 2) + " ÷ 5)", dark: true },
+];
+$("#kpis").innerHTML = kpis.map((k, i) => `<div class="card kpi ${k.dark ? "dark" : ""}"><div class="ic">${k.ic}</div><div><div class="v" id="kpi${i}">0</div><div class="l">${k.l}</div></div></div>`).join("");
+kpis.forEach((k, i) => countUp($("#kpi" + i), k.v, k.d, k.s));
+
+/* ---------- bars ---------- */
+const sorted = [...stats].sort((a, b) => a.avg - b.avg);
+$("#avgBars").innerHTML = sorted.map((s) => {
+  const bad = s.avg < 3;
+  return `<div class="bar-row"><span>${s.name}</span><div class="bar-track"><div class="bar-fill ${bad ? "bad" : ""}" data-w="${s.avg / 5 * 100}"></div><div class="bar-neutral" style="left:60%"></div></div><span class="bar-val ${bad ? "bad" : ""}">${fmt(s.avg, 2)}</span></div>`;
+}).join("");
+$("#stackBars").innerHTML = sorted.map((s) => {
+  const seg = (cls, v) => `<span class="${cls}" data-w="${v * 100}" title="${pct(v)}">${v >= 0.12 ? Math.round(v * 100) + "%" : ""}</span>`;
+  return `<div class="bar-row" style="grid-template-columns:150px 1fr"><span>${s.name}</span><div class="stack">${seg("s-low", s.low)}${seg("s-neu", s.neu)}${seg("s-high", s.high)}</div></div>`;
+}).join("");
+function growBars(root) {
+  root.querySelectorAll("[data-w]").forEach((el) => { el.style.width = "0"; });
+  requestAnimationFrame(() => requestAnimationFrame(() => root.querySelectorAll("[data-w]").forEach((el) => { el.style.width = el.dataset.w + "%"; })));
+}
+
+/* ---------- insights ---------- */
+$("#insights").innerHTML = `
+  <div class="card insight"><div class="big">${satisfiedCrit} / ${N}</div><p>nasabah memberi skor 4–5 untuk <b>kecepatan CS</b> maupun <b>penanganan keluhan</b>. Skor tertinggi di dua aspek ini hanya 3.</p></div>
+  <div class="card insight dark"><div class="big">${Math.round(eitherLow / N * 100)}%</div><p>${eitherLow} nasabah tidak puas pada minimal salah satu dari dua aspek tersebut.</p></div>
+  <div class="card insight"><div class="big">${Math.round(bothLow / N * 100)}%</div><p>${bothLow} nasabah tidak puas pada kedua aspek sekaligus. Ini masalah hampir semua nasabah, bukan segelintir.</p></div>`;
+
+/* ---------- heatmap ---------- */
+let order = DATA.map((_, i) => i);
+function drawHeat() {
+  $("#heat").innerHTML = ASPECTS.map((name, a) =>
+    `<div class="name">${name}</div><div class="row">${order.map((r) => `<div class="cell c${DATA[r][a]}" data-r="${r}" data-a="${a}"></div>`).join("")}</div>`
+  ).join("");
+}
+drawHeat();
+$("#sortBtn").addEventListener("click", (e) => {
+  const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
+  e.currentTarget.setAttribute("aria-pressed", on);
+  order = DATA.map((_, i) => i);
+  if (on) {
+    const m = (r) => DATA[r].reduce((x, y) => x + y, 0);
+    order.sort((x, y) => m(y) - m(x));
+  }
+  e.currentTarget.textContent = on ? "Kembalikan urutan kode nasabah" : "Urutkan nasabah berdasarkan skor rata-rata";
+  drawHeat();
+});
+const tip = $("#tip");
+$("#heat").addEventListener("mousemove", (e) => {
+  const c = e.target.closest(".cell");
+  if (!c) { tip.style.opacity = 0; return; }
+  const r = +c.dataset.r, a = +c.dataset.a;
+  tip.textContent = `Nasabah ${String(r + 1).padStart(3, "0")} · ${ASPECTS[a]}: ${DATA[r][a]}`;
+  tip.style.left = e.clientX + 12 + "px"; tip.style.top = e.clientY + 12 + "px"; tip.style.opacity = 1;
+});
+$("#heat").addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+
+/* ---------- tiers ---------- */
+const tierDefs = [
+  { t: "Prioritas perbaikan", c: "var(--red)", f: (s) => s.avg < 3, act: "Program perbaikan 90 hari" },
+  { t: "Pertahankan & pantau", c: "var(--amber)", f: (s) => s.avg >= 3 && s.high < 0.999, act: "Pantau bulanan; ubah netral jadi puas" },
+  { t: "Kekuatan", c: "var(--green)", f: (s) => s.high >= 0.999, act: "Pertahankan standar; bukan prioritas investasi" },
+];
+$("#tiers").innerHTML = tierDefs.map((d) => {
+  const items = sorted.filter(d.f).map((s) => {
+    const note = s.avg < 3 ? Math.round(s.low * 100) + "% tidak puas" : s.high >= 0.999 ? "100% puas" : Math.round(s.neu * 100) + "% netral";
+    return `<div class="aspect"><div><b>${s.name}</b><small>${note}</small></div><div class="sc" style="color:${d.c}">${fmt(s.avg, 2)}</div></div>`;
+  }).join("");
+  return `<div class="card tier"><h3><span class="dot" style="background:${d.c}"></span>${d.t}</h3>${items}<p class="act"><b>Tindakan:</b> ${d.act}</p></div>`;
+}).join("");
+
+/* ---------- simulator ---------- */
+const base = stats.map((s) => s.avg);
+let sim = [...base];
+function sliderHTML(i) {
+  const crit = CRIT.includes(i);
+  return `<div class="slider ${crit ? "crit" : ""}"><div class="slider-top"><b>${ASPECTS[i]}</b><span class="now" id="sv${i}" style="color:${crit ? "var(--red)" : "var(--navy)"}"></span></div>
+    <input type="range" min="1" max="5" step="0.01" value="${base[i]}" id="sl${i}" aria-label="Skor ${ASPECTS[i]}">
+    <div class="base">Saat ini: ${fmt(base[i], 2)}</div></div>`;
+}
+$("#critSliders").innerHTML = CRIT.map(sliderHTML).join("");
+$("#otherSliders").innerHTML = [0, 1, 4, 5].map(sliderHTML).join("");
+ASPECTS.forEach((_, i) => $("#sl" + i).addEventListener("input", (e) => {
+  sim[i] = +e.target.value; markPreset(null); renderSim();
+}));
+function markPreset(name) { document.querySelectorAll("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.preset === name)); }
+document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => {
+  sim = [...base];
+  if (b.dataset.preset === "t90") CRIT.forEach((i) => (sim[i] = 3.0));
+  if (b.dataset.preset === "t6") CRIT.forEach((i) => (sim[i] = 3.5));
+  sim.forEach((v, i) => ($("#sl" + i).value = v));
+  markPreset(b.dataset.preset); renderSim();
+}));
+function renderSim() {
+  const avg = sim.reduce((a, b) => a + b, 0) / sim.length, csi = avg / 5 * 100, d = csi - CSI;
+  sim.forEach((v, i) => ($("#sv" + i).textContent = fmt(v, 2)));
+  $("#simNum").textContent = fmt(csi, 1) + "%";
+  setArc($("#simArc"), csi);
+  const el = $("#simDelta");
+  el.className = "delta " + (d > 0.05 ? "up" : d < -0.05 ? "down" : "flat");
+  el.textContent = (d > 0.05 ? "+" : d < -0.05 ? "−" : "±") + fmt(Math.abs(d), 1) + " poin dari " + fmt(CSI, 1) + "%";
+  const lost = sim.map((v, i) => ({ i, v: (5 - v) / 5 / sim.length * 100 }));
+  const maxL = Math.max(...lost.map((l) => l.v), 0.01);
+  $("#lostBars").innerHTML = [...lost].sort((a, b) => b.v - a.v).map((l) => {
+    const bad = CRIT.includes(l.i);
+    return `<div class="bar-row"><span>${ASPECTS[l.i]}</span><div class="bar-track"><div class="bar-fill ${bad ? "bad" : ""}" style="width:${l.v / maxL * 100}%;transition:width .3s"></div></div><span class="bar-val ${bad ? "bad" : ""}">${fmt(l.v, 1)}</span></div>`;
+  }).join("");
+  const total = lost.reduce((a, l) => a + l.v, 0), crit = CRIT.reduce((a, i) => a + lost[i].v, 0);
+  $("#lostNote").textContent = total > 0.05
+    ? `Dua aspek kritis menyumbang ${fmt(crit, 1)} dari ${fmt(total, 1)} poin yang hilang (${Math.round(crit / total * 100)}%).`
+    : "Semua aspek sempurna.";
+}
+renderSim();
+
+/* ---------- prototype A: complaint tracker ---------- */
+let seq = 0, step = 0, current = null;
+document.querySelectorAll("[data-ex]").forEach((c) => c.addEventListener("click", () => { $("#cText").value = c.dataset.ex; $("#cText").focus(); }));
+function classify(text) {
+  const t = text.toLowerCase();
+  const topic = /bpkb/.test(t) ? "BPKB" : /(angsur|bayar|denda|potong|tagih|rekening)/.test(t) ? "Pembayaran" : /(pengajuan|status|survei|cair|approve|persetujuan)/.test(t) ? "Pengajuan kredit" : /(antre|antri|lama|cs|pelayanan|tunggu|layani)/.test(t) ? "Pelayanan cabang" : "Lainnya";
+  const level = /(dua kali|double|ganda|hilang|penipuan|fraud|bocor|salah potong)/.test(t) ? "Berat" : /(bpkb|denda|tagih|status|belum)/.test(t) ? "Sedang" : "Ringan";
+  return { topic, level };
+}
+function addWorkdays(d, n) { const x = new Date(d); while (n > 0) { x.setDate(x.getDate() + 1); if (x.getDay() % 6 !== 0) n--; } return x; }
+const dfmt = (d) => d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+const tfmt = (d) => d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+function notify(html) {
+  const n = document.createElement("div"); n.className = "notif"; n.innerHTML = html;
+  $("#notifs").prepend(n); $("#phTime").textContent = tfmt(new Date());
+}
+function renderSteps() {
+  [...$("#tSteps").children].forEach((li, i) => { li.className = i < step ? "done" : i === step ? "cur" : ""; });
+  $("#tNext").disabled = step >= 4;
+  $("#tNext").textContent = step >= 4 ? "Tiket selesai" : "Simulasikan langkah berikutnya";
+}
+$("#cSubmit").addEventListener("click", () => {
+  const text = $("#cText").value.trim();
+  if (!text) { $("#cText").focus(); $("#cText").placeholder = "Tulis keluhan dulu, atau pilih salah satu contoh di bawah."; return; }
+  const c = classify(text);
+  const level = $("#cLevel").value === "auto" ? c.level : $("#cLevel").value;
+  const now = new Date();
+  seq++;
+  const id = "KLH-" + now.toISOString().slice(0, 10).replace(/-/g, "") + "-" + String(seq).padStart(3, "0");
+  const sla = level === "Ringan" ? { txt: "selesai hari ini (" + dfmt(now) + ")", due: dfmt(now) }
+    : level === "Sedang" ? { txt: "maksimal 3 hari kerja, PIC ditetapkan (" + dfmt(addWorkdays(now, 3)) + ")", due: dfmt(addWorkdays(now, 3)) }
+    : { txt: "eskalasi ke kepala cabang, dipantau harian", due: "dipantau harian" };
+  current = { id, level, topic: c.topic, sla, channel: $("#cChannel").value };
+  $("#tId").textContent = id;
+  $("#tLevel").textContent = level; $("#tLevel").className = "tag t-" + level.toLowerCase();
+  $("#tTopic").textContent = c.topic + " · via " + current.channel;
+  $("#tSla").textContent = sla.txt;
+  $("#notifs").innerHTML = "";
+  step = 1; renderSteps();
+  $("#ticket").classList.add("show");
+  notify(`<b>${id}</b> — keluhan Anda sudah kami terima. Kami akan mengabari setiap perkembangannya.`);
+});
+$("#tNext").addEventListener("click", () => {
+  if (!current || step >= 4) return;
+  step++; renderSteps();
+  if (step === 2) notify(`<b>${current.id}</b> — keluhan dikategorikan <b>${current.level}</b> (${current.topic}). Estimasi selesai: ${current.sla.due}.`);
+  if (step === 3) notify(`<b>${current.id}</b> — keluhan sedang ditangani PIC. ${current.level === "Berat" ? "Kepala cabang ikut memantau." : "Kami akan menghubungi Anda bila perlu data tambahan."}`);
+  if (step === 4) notify(`<b>${current.id}</b> — keluhan selesai. Mohon beri nilai layanan kami (1–5) dalam satu klik.`);
+});
+$("#tReset").addEventListener("click", () => {
+  $("#ticket").classList.remove("show"); $("#cText").value = ""; current = null; step = 0; $("#cText").focus();
+});
+
+/* ---------- prototype B: credit pre-analysis ---------- */
+const ins = ["inInc", "inDebt", "inOtr", "inDp", "inRate", "inTenor", "inCond", "inHist"];
+ins.forEach((id) => $("#" + id).addEventListener("input", renderCredit));
+function renderCredit() {
+  const inc = +$("#inInc").value, debt = +$("#inDebt").value, otr = +$("#inOtr").value, dp = +$("#inDp").value / 100;
+  const rate = +$("#inRate").value / 100, tenor = +$("#inTenor").value, cond = $("#inCond").value, hist = $("#inHist").value;
+  $("#oInc").textContent = rp(inc); $("#oDebt").textContent = rp(debt); $("#oOtr").textContent = rp(otr);
+  $("#oDp").textContent = Math.round(dp * 100) + "%"; $("#oRate").textContent = fmt(rate * 100, 2) + "%";
+  const loan = otr * (1 - dp);
+  const inst = loan * (1 + rate * tenor / 12) / tenor;
+  const dsr = (inst + debt) / inc;
+  const f = [];
+  if (dsr <= 0.30) f.push(["Rasio cicilan " + pct(dsr) + " (≤ 30%)", 0]);
+  else if (dsr <= 0.40) f.push(["Rasio cicilan " + pct(dsr) + " (30–40%)", -15]);
+  else if (dsr <= 0.50) f.push(["Rasio cicilan " + pct(dsr) + " (40–50%)", -30]);
+  else f.push(["Rasio cicilan " + pct(dsr) + " (> 50%)", -45]);
+  if (dp >= 0.30) f.push(["Uang muka " + Math.round(dp * 100) + "% (≥ 30%)", 0]);
+  else if (dp >= 0.20) f.push(["Uang muka " + Math.round(dp * 100) + "% (20–29%)", -8]);
+  else f.push(["Uang muka " + Math.round(dp * 100) + "% (< 20%)", -20]);
+  const hmap = { lancar: ["Riwayat kredit lancar", 0], none: ["Belum ada riwayat kredit", -8], late: ["Pernah terlambat ringan", -15], bad: ["Pernah macet", -40] };
+  f.push(hmap[hist]);
+  f.push(cond === "bekas" ? ["Kendaraan bekas", -5] : ["Kendaraan baru", 0]);
+  f.push(tenor >= 60 ? ["Tenor panjang (60 bulan)", -5] : ["Tenor " + tenor + " bulan", 0]);
+  const score = Math.max(0, Math.min(100, 100 + f.reduce((a, x) => a + x[1], 0)));
+  const lane = score >= 80 ? ["Jalur cepat", "Analis cukup review ringkas karena profil risiko rendah.", "var(--green)"]
+    : score >= 60 ? ["Analisis standar", "Analis memeriksa dokumen dan kemampuan bayar seperti biasa.", "var(--amber)"]
+    : ["Analisis mendalam + survei", "Perlu verifikasi tambahan dan survei sebelum keputusan.", "var(--red)"];
+  const sc = $("#rScore"); sc.textContent = score; sc.style.background = lane[2];
+  $("#rLane").textContent = lane[0]; $("#rLaneDesc").textContent = lane[1];
+  $("#mInst").textContent = rp(inst); $("#mDsr").textContent = pct(dsr); $("#mLoan").textContent = rp(loan);
+  $("#rFactors").innerHTML = f.map(([t, p]) => `<li><span>${t}</span><span class="pt ${p < 0 ? "neg" : "pos"}">${p < 0 ? "−" + Math.abs(p) : "✓ 0"}</span></li>`).join("");
+  const worst = [...f].sort((a, b) => a[1] - b[1])[0];
+  $("#rSummary").textContent = `Pembiayaan ${rp(loan)} untuk kendaraan ${cond} dengan tenor ${tenor} bulan. Estimasi angsuran ${rp(inst)}, rasio cicilan terhadap penghasilan ${pct(dsr)}. ` +
+    (worst[1] < 0 ? `Faktor risiko utama: ${worst[0].toLowerCase()}. ` : "Tidak ada faktor risiko menonjol. ") + `Rekomendasi jalur: ${lane[0].toLowerCase()}.`;
+}
+renderCredit();
+
+/* ---------- tabs ---------- */
+const tabs = [...document.querySelectorAll(".tab")];
+function show(id, push = true) {
+  tabs.forEach((t) => t.setAttribute("aria-selected", t.getAttribute("aria-controls") === id));
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === id));
+  if (id === "diagnosis") growBars($("#diagnosis"));
+  if (push) history.replaceState(null, "", "#" + id);
+}
+tabs.forEach((t) => t.addEventListener("click", () => { show(t.getAttribute("aria-controls")); $("nav.tabs").scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); }));
+document.addEventListener("keydown", (e) => {
+  if (/(INPUT|TEXTAREA|SELECT)/.test(document.activeElement.tagName)) return;
+  const m = { "1": "diagnosis", "2": "simulator", "3": "prototipe" }[e.key];
+  if (m) show(m);
+});
+const startId = ["diagnosis", "simulator", "prototipe"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "diagnosis";
+show(startId, false);
+</script>
+</body>
+</html>
